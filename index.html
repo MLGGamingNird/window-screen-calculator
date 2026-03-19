@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Screen Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #0f1117;
+  --bg2:       #181c27;
+  --bg3:       #1e2330;
+  --border:    rgba(255,255,255,0.08);
+  --border2:   rgba(255,255,255,0.14);
+  --text:      #e8eaf0;
+  --text2:     #8b90a0;
+  --text3:     #555a6a;
+  --accent:    #6c8eff;
+  --accent2:   #4ecca3;
+  --warn:      #ffb347;
+  --danger:    #ff6b6b;
+  --success:   #4ecca3;
+  --radius:    10px;
+  --radius-lg: 16px;
+  --mono:      'DM Mono', monospace;
+  --sans:      'Syne', sans-serif;
+}
+[data-theme="light"] {
+  --bg:      #f4f5f8;
+  --bg2:     #ffffff;
+  --bg3:     #eaecf2;
+  --border:  rgba(0,0,0,0.08);
+  --border2: rgba(0,0,0,0.14);
+  --text:    #1a1d2e;
+  --text2:   #5a6080;
+  --text3:   #9aa0b8;
+  --accent:  #3a6aff;
+  --accent2: #1a9e7a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;transition:background .2s,color .2s}
+/* Layout */
+.app{display:grid;grid-template-columns:var(--sidebar-w,300px) 1fr;grid-template-rows:56px 1fr;height:100vh;overflow:hidden}
+.topbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:var(--bg2);border-bottom:1px solid var(--border);gap:16px}
+.topbar-title{font-size:15px;font-weight:700;letter-spacing:.04em;color:var(--text)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;padding:20px 16px 32px}
+.main{overflow-y:auto;padding:24px}
+/* Sidebar sections */
+.section-label{font-size:10px;font-weight:600;letter-spacing:.12em;color:var(--text3);text-transform:uppercase;margin:20px 0 10px;padding-left:4px}
+.field-label{font-size:12px;color:var(--text2);margin-bottom:4px;padding-left:2px}
+.field-row{display:flex;gap:6px;margin-bottom:10px}
+.field-row input,.field-row select,input[type=text],input[type=number]{
+  background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);
+  color:var(--text);font-family:var(--mono);font-size:13px;padding:7px 10px;
+  outline:none;transition:border .15s;width:100%}
+.field-row input:focus,.field-row select:focus,input:focus{border-color:var(--accent)}
+.field-row select{cursor:pointer;flex-shrink:0;width:58px}
+.unit-entry{display:flex;gap:6px;width:100%}
+.unit-entry input{flex:1;min-width:0}
+.unit-entry select{flex-shrink:0;width:58px}
+/* Buttons */
+btn,button,.btn{font-family:var(--sans);font-size:13px;font-weight:600;padding:8px 16px;border-radius:var(--radius);border:1px solid var(--border2);background:transparent;color:var(--text);cursor:pointer;transition:all .15s;white-space:nowrap}
+button:hover,.btn:hover{background:var(--bg3);border-color:var(--accent)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-primary:hover{opacity:.88;background:var(--accent)}
+.btn-sm{font-size:11px;padding:5px 10px}
+.btn-danger{border-color:var(--danger);color:var(--danger)}
+.btn-danger:hover{background:rgba(255,107,107,.1)}
+.calc-btn{width:100%;padding:11px;font-size:14px;font-weight:700;background:var(--accent);border:none;color:#fff;border-radius:var(--radius);cursor:pointer;margin-top:16px;letter-spacing:.04em;transition:opacity .15s}
+.calc-btn:hover{opacity:.88}
+/* Window rows */
+.win-row{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;padding:8px;background:var(--bg3);border-radius:var(--radius);border:1px solid var(--border)}
+.win-row input{font-size:12px;padding:6px 8px}
+.win-row-top{display:flex;gap:6px;align-items:center}
+.win-row-bottom{display:grid;grid-template-columns:1fr 1fr 44px 44px 44px;gap:4px;align-items:center}
+.win-row select{font-size:11px;padding:4px 6px;width:60px}
+.win-cell{display:flex;gap:3px;min-width:0}
+.win-cell input{flex:1;min-width:50px}
+.win-cell select{flex-shrink:1;flex-grow:0;width:auto;min-width:0;max-width:52px}
+.add-win-btn{font-size:12px;color:var(--accent);background:none;border:1px dashed var(--border2);border-radius:var(--radius);padding:7px 12px;cursor:pointer;width:100%;margin-top:6px;transition:all .15s}
+.add-win-btn:hover{background:var(--bg3)}
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--bg2);padding:4px;border-radius:var(--radius-lg);width:fit-content}
+.tab{font-size:12px;font-weight:600;padding:7px 16px;border-radius:var(--radius);border:none;background:transparent;color:var(--text2);cursor:pointer;transition:all .15s;letter-spacing:.02em}
+.tab.active{background:var(--accent);color:#fff}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text2);margin-bottom:16px}
+/* Stat grid */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px}
+.stat{background:var(--bg3);border-radius:var(--radius);padding:14px 16px}
+.stat-label{font-size:11px;color:var(--text3);margin-bottom:4px;letter-spacing:.06em;text-transform:uppercase}
+.stat-value{font-size:20px;font-weight:700;font-family:var(--mono);color:var(--text)}
+.stat-sub{font-size:11px;color:var(--text2);margin-top:2px;font-family:var(--mono)}
+/* Results table */
+.results-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
+.results-table th{text-align:left;color:var(--text3);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:6px 10px;border-bottom:1px solid var(--border)}
+.results-table td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--text2)}
+.results-table tr:last-child td{border-bottom:none}
+.results-table td:first-child{color:var(--text);font-weight:500}
+/* Bar visual */
+.bar-wrap{display:flex;align-items:center;gap:10px;margin-bottom:8px;width:100%}
+.bar-label{font-size:12px;font-family:var(--mono);color:var(--text2);min-width:64px;text-align:right;flex-shrink:0}
+.bar-canvas{border-radius:6px;border:1px solid var(--border);flex:1;min-width:0}
+.bar-side{font-size:11px;font-family:var(--mono);color:var(--text3);min-width:110px;flex-shrink:0}
+/* Legend */
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;align-items:center}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2)}
+.legend-swatch{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+/* Cut guide */
+.guide-wrap{display:flex;gap:0;align-items:flex-start;overflow-x:auto;overflow-y:visible;margin-bottom:16px;padding-bottom:8px;width:100%}
+.guide-ruler{flex-shrink:0}
+.guide-labels{padding-left:10px;flex-shrink:0}
+.guide-label-row{display:flex;flex-direction:column;justify-content:center}
+.guide-label-row span{font-size:10px;font-family:var(--mono);color:var(--text3)}
+.guide-label-row span:first-child{color:var(--text2)}
+/* Summary box */
+.summary-box{background:var(--bg3);border-radius:var(--radius);padding:14px 16px;font-family:var(--mono);font-size:12px;color:var(--text2);line-height:1.8}
+.summary-box strong{color:var(--text)}
+/* Mode toggle */
+.mode-toggle{display:flex;background:var(--bg3);border-radius:var(--radius);padding:3px;gap:2px}
+.mode-btn{font-size:12px;font-weight:600;padding:5px 14px;border-radius:8px;border:none;background:transparent;color:var(--text2);cursor:pointer;transition:all .15s}
+.mode-btn.active{background:var(--accent);color:#fff}
+/* Theme toggle */
+.theme-toggle-btn{background:none;border:1px solid var(--border2);border-radius:var(--radius);width:34px;height:34px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0}
+.theme-toggle-btn:hover{background:var(--bg3)}
+/* Range badge */
+.range-badge{font-size:10px;font-family:var(--mono);background:var(--bg3);border:1px solid var(--border);border-radius:99px;padding:2px 8px;color:var(--text3)}
+/* Divider */
+.divider{border:none;border-top:1px solid var(--border);margin:20px 0}
+/* Empty state */
+.empty{text-align:center;padding:48px 24px;color:var(--text3);font-size:13px}
+.empty-icon{font-size:32px;margin-bottom:12px;opacity:.4}
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+/* Responsive */
+@media(max-width:768px){
+  .app{grid-template-columns:1fr;grid-template-rows:56px auto 1fr}
+  .sidebar{border-right:none;border-bottom:1px solid var(--border);max-height:50vh}
+
+}
+
+/* Tooltip */
+.cv-tooltip{position:fixed;pointer-events:none;background:var(--bg2);border:1px solid var(--border2);
+  border-radius:var(--radius);padding:8px 12px;font-family:var(--mono);font-size:12px;color:var(--text);
+  box-shadow:0 4px 20px rgba(0,0,0,.35);z-index:9999;max-width:260px;line-height:1.6;display:none}
+.cv-tooltip.visible{display:block}
+.cv-tooltip-title{font-weight:600;color:var(--text);margin-bottom:4px;font-size:13px}
+.cv-tooltip-row{color:var(--text2);font-size:11px}
+/* Detail panel */
+.detail-panel{position:fixed;right:0;top:56px;bottom:0;width:280px;background:var(--bg2);
+  border-left:1px solid var(--border);padding:20px;z-index:500;transform:translateX(100%);
+  transition:transform .2s;overflow-y:auto}
+.detail-panel.open{transform:translateX(0)}
+.detail-close{float:right;background:none;border:none;color:var(--text2);font-size:18px;
+  cursor:pointer;line-height:1;padding:0}
+.detail-title{font-size:14px;font-weight:600;margin-bottom:16px;color:var(--text)}
+.detail-row{display:flex;justify-content:space-between;padding:7px 0;
+  border-bottom:1px solid var(--border);font-size:12px;font-family:var(--mono)}
+.detail-row span:first-child{color:var(--text2)}
+.detail-row span:last-child{color:var(--text);font-weight:500}
+.detail-swatch{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:6px;vertical-align:middle}
+
+/* Resizable + collapsible sidebar */
+.sidebar{position:relative;min-width:200px;max-width:520px;user-select:none}
+.sidebar-resize{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;
+  background:transparent;z-index:10;transition:background .15s}
+.sidebar-resize:hover,.sidebar-resize.dragging{background:var(--accent)}
+.sidebar-collapsed{overflow:hidden;padding:0!important;min-width:0!important;width:0!important}
+/* Section collapse */
+.section-header{display:flex;align-items:center;justify-content:space-between;
+  cursor:pointer;margin:20px 0 10px;padding:4px 0;user-select:none}
+.section-header:hover .section-label{color:var(--text2)}
+.section-chevron{font-size:10px;color:var(--text3);transition:transform .2s;flex-shrink:0}
+.section-chevron.open{transform:rotate(180deg)}
+.section-body{overflow:hidden;transition:max-height .25s ease}
+.section-body.collapsed{max-height:0!important}
+/* Win rows scrollable */
+#win-rows-wrap{max-height:none;overflow-y:visible;padding-right:4px}
+/* Mesh layout toggle */
+/* Detail panel — smooth drawer */
+.detail-panel{position:fixed;right:0;top:56px;bottom:0;width:300px;background:var(--bg2);
+  border-left:1px solid var(--border);padding:0;z-index:500;
+  transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);
+  overflow-y:auto;display:flex;flex-direction:column}
+.detail-panel.open{transform:translateX(0);box-shadow:-8px 0 32px rgba(0,0,0,.25)}
+.detail-header{padding:16px 20px 12px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+  position:sticky;top:0;background:var(--bg2);z-index:1}
+.detail-body-inner{padding:16px 20px 24px;flex:1}
+.detail-close{background:none;border:1px solid var(--border2);border-radius:var(--radius);
+  color:var(--text2);font-size:13px;cursor:pointer;padding:4px 10px;transition:all .15s}
+.detail-close:hover{background:var(--bg3)}
+/* Overlay when detail open */
+.detail-overlay{position:fixed;inset:0;z-index:499;display:none}
+.detail-overlay.open{display:block}
+
+select.unit-sel{width:auto;min-width:52px;max-width:64px;padding-right:18px}
+.unit-entry select,.win-width-unit,.win-height-unit{
+  width:auto;min-width:52px;max-width:64px;padding:7px 4px 7px 8px;
+  appearance:auto;-webkit-appearance:auto}
+</style>
+</head>
+<body data-theme="dark">
+
+<div class="app">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <span class="topbar-title">SCREEN CALCULATOR</span>
+    <div class="topbar-right">
+      <div class="mode-toggle">
+        <button class="mode-btn active" onclick="setMode('needed')">Needed</button>
+        <button class="mode-btn" onclick="setMode('full')">Full</button>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="calculate()">Calculate</button>
+      <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle theme" id="theme-btn">
+      <span id="theme-icon">🌙</span>
+    </button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-resize" id="sidebar-resize"></div>
+
+    <div class="section-header" onclick="toggleSection('frame-body','frame-chev')">
+      <span class="section-label" style="margin:0">Frame</span>
+      <span class="section-chevron open" id="frame-chev">▼</span>
+    </div>
+    <div class="section-body" id="frame-body" style="max-height:200px">
+    <div class="field-label">Stick length</div>
+    <div class="unit-entry" style="margin-bottom:10px">
+      <input type="number" id="stick_length" step="any">
+      <select id="stick_unit" onchange="convertField('stick_length','stick_unit')">
+        <option>cm</option><option>mm</option><option>in</option><option>ft</option>
+      </select>
+    </div>
+
+    </div>
+    <div class="section-header" onclick="toggleSection('mesh-body','mesh-chev')">
+      <span class="section-label" style="margin:0">Mesh</span>
+      <span class="section-chevron open" id="mesh-chev">▼</span>
+    </div>
+    <div class="section-body" id="mesh-body" style="max-height:400px">
+    <div class="field-label">Roll width</div>
+    <div class="unit-entry" style="margin-bottom:10px">
+      <input type="number" id="mesh_roll_width" step="any">
+      <select id="mesh_roll_width_unit" onchange="convertField('mesh_roll_width','mesh_roll_width_unit')">
+        <option>cm</option><option>mm</option><option>in</option><option>ft</option>
+      </select>
+    </div>
+    <div class="field-label">Roll length</div>
+    <div class="unit-entry" style="margin-bottom:10px">
+      <input type="number" id="mesh_roll_length" step="any">
+      <select id="mesh_roll_length_unit" onchange="convertField('mesh_roll_length','mesh_roll_length_unit')">
+        <option>cm</option><option>mm</option><option>in</option><option>ft</option>
+      </select>
+    </div>
+    <div class="field-label">Cut overage (per side)</div>
+    <div class="unit-entry" style="margin-bottom:10px">
+      <input type="number" id="mesh_overage" step="any" value="1">
+      <select id="mesh_overage_unit" onchange="convertField('mesh_overage','mesh_overage_unit')">
+        <option>cm</option><option>mm</option><option value="in" selected>in</option><option>ft</option>
+      </select>
+    </div>
+
+    </div>
+    <div class="section-header" onclick="toggleSection('spline-body','spline-chev')">
+      <span class="section-label" style="margin:0">Spline</span>
+      <span class="section-chevron open" id="spline-chev">▼</span>
+    </div>
+    <div class="section-body" id="spline-body" style="max-height:400px">
+    <div class="field-label">Roll length</div>
+    <div class="unit-entry" style="margin-bottom:10px">
+      <input type="number" id="spline_roll_length" step="any">
+      <select id="spline_roll_length_unit" onchange="convertField('spline_roll_length','spline_roll_length_unit')">
+        <option>cm</option><option>mm</option><option>in</option><option>ft</option>
+      </select>
+    </div>
+    <div class="field-label">Groove inset min</div>
+    <div class="unit-entry" style="margin-bottom:10px">
+      <input type="number" id="spline_inset_min" step="any">
+      <select id="spline_inset_unit" onchange="convertInsetFields()">
+        <option>cm</option><option>mm</option><option value="in" selected>in</option><option>ft</option>
+      </select>
+    </div>
+    <div class="field-label">Groove inset max</div>
+    <div class="unit-entry" style="margin-bottom:10px">
+      <input type="number" id="spline_inset_max" step="any">
+    </div>
+
+    </div>
+    <div class="section-header" onclick="toggleSection('win-body','win-chev')">
+      <span class="section-label" style="margin:0">Window Types</span>
+      <span class="section-chevron open" id="win-chev">▼</span>
+    </div>
+    <div class="section-body" id="win-body" style="max-height:600px">
+
+    <div id="win-rows-wrap"><div id="win-rows"></div></div>
+    <button class="add-win-btn" onclick="addWindow()">+ Add window type</button>
+    </div>
+    <hr class="divider">
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-sm" style="flex:1" onclick="saveConfig()">Save settings</button>
+      <button class="btn btn-sm btn-danger" onclick="resetConfig()">Reset</button>
+    </div>
+
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('results')">Results</button>
+      <button class="tab" onclick="switchTab('frame')">Frame layout</button>
+      <button class="tab" onclick="switchTab('mesh')">Mesh layout</button>
+      <button class="tab" onclick="switchTab('spline')">Spline layout</button>
+    </div>
+
+    <div id="tab-results" class="tab-panel active">
+      <div class="empty"><div class="empty-icon">📐</div>Configure your windows and press Calculate.</div>
+    </div>
+    <div id="tab-frame" class="tab-panel">
+      <div class="empty"><div class="empty-icon">🪵</div>Press Calculate to see the frame layout.</div>
+    </div>
+    <div id="tab-mesh" class="tab-panel">
+      <div class="empty"><div class="empty-icon">🕸</div>Press Calculate to see the mesh layout.</div>
+    </div>
+    <div id="tab-spline" class="tab-panel">
+      <div class="empty"><div class="empty-icon">🔩</div>Press Calculate to see the spline layout.</div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+const TO_CM   = {cm:1, mm:0.1, in:2.54, ft:30.48};
+const UNIT_DEC = {cm:2, mm:1,  in:3,    ft:4};
+let config = {};
+let mode   = 'needed';
+let results = null;
+
+const CUT_COLORS   = ["#4C9BE8","#E8834C","#4CE87A","#E84C6B","#C74CE8","#E8D44C","#4CE8D4","#E84CB0","#8BE84C","#4C6BE8"];
+const MESH_COLORS  = ["#5DBE8A","#BE8A5D","#5D8ABE","#BE5D8A","#8ABE5D","#8A5DBE","#BE5D5D","#5DBEBE"];
+const SPLINE_COLORS= ["#B07CC6","#C6A07C","#7CB0C6","#C67C9A","#9AC67C","#C6C67C"];
+
+// ---------------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------------
+async function init() {
+  const res = await fetch('/api/config');
+  config = await res.json();
+  populateSidebar();
+}
+
+function populateSidebar() {
+  const fields = ['stick_length','stick_unit','mesh_roll_width','mesh_roll_width_unit',
+                  'mesh_roll_length','mesh_roll_length_unit','mesh_overage','mesh_overage_unit',
+                  'spline_roll_length','spline_roll_length_unit','spline_inset_min','spline_inset_max','spline_inset_unit'];
+  fields.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && config[id] !== undefined) el.value = config[id];
+  });
+  renderWindowRows();
+}
+
+function buildConfigFromUI() {
+  const cfg = {...config};
+  ['stick_length','mesh_roll_width','mesh_roll_length','mesh_overage','spline_roll_length',
+   'spline_inset_min','spline_inset_max'].forEach(id => {
+    cfg[id] = parseFloat(document.getElementById(id).value) || 0;
+  });
+  ['stick_unit','mesh_roll_width_unit','mesh_roll_length_unit','mesh_overage_unit',
+   'spline_roll_length_unit','spline_inset_unit'].forEach(id => {
+    cfg[id] = document.getElementById(id).value;
+  });
+  // windows from rows
+  cfg.windows = {};
+  document.querySelectorAll('.win-row-data').forEach(row => {
+    const name   = row.querySelector('.win-name').value.trim();
+    if (!name) return;
+    cfg.windows[name] = {
+      width:       parseFloat(row.querySelector('.win-width').value)||0,
+      width_unit:  row.querySelector('.win-width-unit').value,
+      height:      parseFloat(row.querySelector('.win-height').value)||0,
+      height_unit: row.querySelector('.win-height-unit').value,
+      needed:      parseInt(row.querySelector('.win-needed').value)||0,
+      full:        parseInt(row.querySelector('.win-full').value)||0,
+    };
+  });
+  return cfg;
+}
+
+// ---------------------------------------------------------------------------
+// Window rows
+// ---------------------------------------------------------------------------
+function renderWindowRows() {
+  const container = document.getElementById('win-rows');
+  container.innerHTML = '';
+  Object.entries(config.windows || {}).forEach(([name, d], i) => {
+    container.appendChild(makeWinRow(name, d, i));
+  });
+}
+
+function makeWinRow(name, d, i) {
+  const div = document.createElement('div');
+  div.className = 'win-row win-row-data';
+  div.innerHTML = `
+    <div class="win-row-top">
+      <input class="win-name" value="${name}" placeholder="Window name" style="flex:1;font-size:13px;font-weight:500">
+      <button class="btn btn-sm btn-danger" onclick="removeWinRow(this)" style="flex-shrink:0">✕</button>
+    </div>
+    <div class="win-row-bottom">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Width</span>
+        <div class="win-cell">
+          <input class="win-width" type="number" step="any" value="${d.width}" style="min-width:0;flex:1">
+          <select class="win-width-unit" onchange="convertWinField(this,'width')" style="width:54px">
+            ${unitOptions(d.width_unit)}
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Height</span>
+        <div class="win-cell">
+          <input class="win-height" type="number" step="any" value="${d.height}" style="min-width:0;flex:1">
+          <select class="win-height-unit" onchange="convertWinField(this,'height')" style="width:54px">
+            ${unitOptions(d.height_unit)}
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Need</span>
+        <input class="win-needed" type="number" min="0" value="${d.needed}" style="text-align:center">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Full</span>
+        <input class="win-full" type="number" min="0" value="${d.full}" style="text-align:center">
+      </div>
+    </div>`;
+  return div;
+}
+
+function unitOptions(selected) {
+  return ['cm','mm','in','ft'].map(u =>
+    `<option${u===selected?' selected':''}>${u}</option>`).join('');
+}
+
+function addWindow() {
+  const container = document.getElementById('win-rows');
+  const n = container.querySelectorAll('.win-row-data').length + 1;
+  const d = {width:0,width_unit:'in',height:0,height_unit:'in',needed:0,full:0};
+  container.appendChild(makeWinRow(`Window ${n}`, d, n-1));
+}
+
+function removeWinRow(btn) {
+  btn.closest('.win-row-data').remove();
+}
+
+// ---------------------------------------------------------------------------
+// Unit conversion helpers
+// ---------------------------------------------------------------------------
+function convertField(valId, unitId) {
+  const input   = document.getElementById(valId);
+  const select  = document.getElementById(unitId);
+  const oldUnit = input.dataset.unit || select.value;
+  const newUnit = select.value;
+  if (oldUnit !== newUnit) {
+    const cm = parseFloat(input.value) * TO_CM[oldUnit];
+    input.value = (cm / TO_CM[newUnit]).toFixed(UNIT_DEC[newUnit]);
+  }
+  input.dataset.unit = newUnit;
+}
+
+function convertInsetFields() {
+  const sel = document.getElementById('spline_inset_unit');
+  const newUnit = sel.value;
+  ['spline_inset_min','spline_inset_max'].forEach(id => {
+    const inp = document.getElementById(id);
+    const oldUnit = inp.dataset.unit || 'in';
+    if (oldUnit !== newUnit) {
+      const cm = parseFloat(inp.value) * TO_CM[oldUnit];
+      inp.value = (cm / TO_CM[newUnit]).toFixed(UNIT_DEC[newUnit]);
+    }
+    inp.dataset.unit = newUnit;
+  });
+}
+
+function convertWinField(select, dim) {
+  const row     = select.closest('.win-row-data');
+  const input   = row.querySelector(`.win-${dim}`);
+  const oldUnit = input.dataset.unit || select.value;
+  const newUnit = select.value;
+  if (oldUnit !== newUnit) {
+    const cm = parseFloat(input.value) * TO_CM[oldUnit];
+    input.value = (cm / TO_CM[newUnit]).toFixed(UNIT_DEC[newUnit]);
+  }
+  input.dataset.unit = newUnit;
+}
+
+// ---------------------------------------------------------------------------
+// Mode / Theme
+// ---------------------------------------------------------------------------
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('.mode-btn').forEach(b =>
+    b.classList.toggle('active', b.textContent.toLowerCase() === m));
+}
+
+function toggleTheme() {
+  const t = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
+  document.body.dataset.theme = t;
+  localStorage.setItem('theme', t);
+  const icon = document.getElementById('theme-icon');
+  if (icon) icon.textContent = t === 'dark' ? '🌙' : '☀️';
+}
+
+// ---------------------------------------------------------------------------
+// Save / Reset
+// ---------------------------------------------------------------------------
+async function saveConfig() {
+  config = buildConfigFromUI();
+  await fetch('/api/config', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(config)});
+}
+
+async function resetConfig() {
+  if (!confirm('Reset all settings to defaults?')) return;
+  const res = await fetch('/api/config/reset', {method:'POST'});
+  config = await res.json();
+  populateSidebar();
+  clearResults();
+}
+
+function clearResults() {
+  ['results','frame','mesh','spline'].forEach(t => {
+    document.getElementById(`tab-${t}`).innerHTML =
+      `<div class="empty"><div class="empty-icon">📐</div>Press Calculate.</div>`;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Calculate
+// ---------------------------------------------------------------------------
+async function calculate() {
+  config = buildConfigFromUI();
+  const res = await fetch('/api/calculate', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({config, mode})
+  });
+  results = await res.json();
+  renderResults();
+  renderFrameLayout();
+  renderMeshLayout();
+  renderSplineLayout();
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+function fv(cmVal, unit) {
+  const v = cmVal / TO_CM[unit];
+  return v.toFixed(UNIT_DEC[unit]) + ' ' + unit;
+}
+
+function makeLegend(items) {
+  return `<div class="legend">${items.map(([color,label]) =>
+    `<div class="legend-item"><div class="legend-swatch" style="background:${color}"></div><span>${label}</span></div>`
+  ).join('')}</div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Tooltip & detail panel
+// ---------------------------------------------------------------------------
+function getTooltip() { return document.getElementById('cv-tooltip'); }
+
+function showTooltip(e, html) {
+  const t = getTooltip(); if(!t) return;
+  t.innerHTML = html; t.classList.add('visible');
+  positionTooltip(e);
+}
+function hideTooltip() { const t = getTooltip(); if(t) t.classList.remove('visible'); }
+function positionTooltip(e) {
+  const t = getTooltip(); if(!t) return;
+  const pad = 14;
+  let x = e.clientX + pad, y = e.clientY + pad;
+  if (x + 280 > window.innerWidth)  x = e.clientX - 280 - pad;
+  if (y + 160 > window.innerHeight) y = e.clientY - 160 - pad;
+  t.style.left = x + 'px'; t.style.top = y + 'px';
+}
+
+function openDetail(title, rows) {
+  document.getElementById('detail-title').textContent = title;
+  document.getElementById('detail-body').innerHTML = rows.map(([k,v,color]) =>
+    `<div class="detail-row">
+      <span>${color?`<span class="detail-swatch" style="background:${color}"></span>`:''}${k}</span>
+      <span>${v}</span>
+    </div>`).join('');
+  document.getElementById('detail-panel').classList.add('open');
+}
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('open');
+}
+
+// ---------------------------------------------------------------------------
+// Canvas rendering
+// ---------------------------------------------------------------------------
+function makeBarCanvas(segments, total, bgColor, w=0, h=38) {
+  const c = document.createElement('canvas');
+  c.height = h; c.width = w || 800;
+  c.className = 'bar-canvas';
+  c.style.cssText = 'display:block;width:100%;border-radius:6px;border:1px solid var(--border);cursor:crosshair';
+  c.dataset.segments = JSON.stringify(segments);
+  c.dataset.total    = total;
+  c.dataset.bg       = bgColor;
+  c.dataset.h        = h;
+  return c;
+}
+
+function getSegmentAt(c, mouseX) {
+  const segments = JSON.parse(c.dataset.segments);
+  const total    = parseFloat(c.dataset.total);
+  const w        = c.offsetWidth;
+  let x = 0;
+  for (const seg of segments) {
+    const pw = Math.max((seg.len / total) * w, 2); // must match drawCanvas exactly
+    if (mouseX >= x && mouseX < x + pw) return {seg, x, pw};
+    x += pw;
+  }
+  return null;
+}
+
+function drawCanvas(c, hoverSeg=null) {
+  const segments = JSON.parse(c.dataset.segments);
+  const total    = parseFloat(c.dataset.total);
+  const bgColor  = c.dataset.bg;
+  const dpr      = window.devicePixelRatio || 1;
+  const w        = c.offsetWidth || 800;
+  const h        = parseInt(c.dataset.h) || 38;
+  c.width  = w * dpr; c.height = h * dpr;
+  c.style.width = w + 'px'; c.style.height = h + 'px';
+  const ctx = c.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle = bgColor; ctx.fillRect(0,0,w,h);
+  let x = 0;
+  // Pass 1: draw fills
+  const segPositions = [];
+  segments.forEach((seg) => {
+    const pw = Math.max((seg.len/total)*w, 2);
+    const isHover = hoverSeg && seg === hoverSeg;
+    ctx.fillStyle = seg.color;
+    ctx.globalAlpha = isHover ? 1.0 : (hoverSeg ? 0.72 : 1.0);
+    ctx.fillRect(x, 1, Math.max(pw-1,0), h-2);
+    if (isHover) {
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x+1, 2, Math.max(pw-3,0), h-4);
+    }
+    ctx.globalAlpha = 1;
+    segPositions.push({seg, x, pw});
+    x += pw;
+  });
+  // Pass 2: draw labels clipped to segment bounds
+  segPositions.forEach(({seg, x, pw}) => {
+    if (!seg.label || seg.label.includes('waste') || seg.label.includes('left')) return;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, 0, pw, h);
+    ctx.clip();
+    ctx.fillStyle = '#111111';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const shortLabel = seg.label;
+    const fullLabel  = seg.fullLabel || seg.label;
+    const hasTwoLines = fullLabel !== shortLabel && h >= 28;
+    ctx.font = 'bold 10px monospace';
+
+    // Try progressively shorter labels until one fits
+    function bestFit(label, maxW) {
+      if (ctx.measureText(label).width <= maxW) return label;
+      // Try stripping parenthetical: "Medium (B)" -> "Medium"
+      const noParens = label.replace(/\s*\(.*\)/, '').trim();
+      if (noParens && ctx.measureText(noParens).width <= maxW) return noParens;
+      // Try first word only: "Medium" -> "Med"
+      const firstWord = noParens || label.split(' ')[0];
+      if (ctx.measureText(firstWord).width <= maxW) return firstWord;
+      // Try just the letter in parens: "Medium (B)" -> "B"
+      const letter = (label.match(/\(([^)]+)\)/) || [])[1];
+      if (letter && ctx.measureText(letter).width <= maxW) return letter;
+      return null; // nothing fits
+    }
+
+    const availW = pw - 8;
+    const fit = bestFit(shortLabel, availW);
+
+    if (hasTwoLines && fit) {
+      ctx.fillText(fit, x + pw/2, h/2 - 7);
+      ctx.font = '9px monospace';
+      ctx.fillStyle = '#333333';
+      const measLabel = fullLabel.replace(shortLabel, '').trim();
+      if (ctx.measureText(measLabel).width <= availW)
+        ctx.fillText(measLabel, x + pw/2, h/2 + 7);
+    } else if (fit) {
+      ctx.fillText(fit, x + pw/2, h/2);
+    } else if (pw > 12) {
+      // Last resort: draw what fits with ellipsis
+      const letter = (shortLabel.match(/\(([^)]+)\)/) || [])[1] || shortLabel[0];
+      if (letter) ctx.fillText(letter, x + pw/2, h/2);
+    }
+    ctx.restore();
+  });
+}
+
+function attachBarInteraction(c, barLabel) {
+  c.addEventListener('mousemove', e => {
+    const rect  = c.getBoundingClientRect();
+    const mx    = e.clientX - rect.left;
+    const hit   = getSegmentAt(c, mx);
+    if (hit) {
+      const {seg} = hit;
+      const isWaste = !seg.label || seg.label.includes('waste');
+      showTooltip(e, `
+        <div class="cv-tooltip-title">
+          <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${seg.color};margin-right:6px;vertical-align:middle"></span>
+          ${isWaste ? 'Waste' : (seg.fullLabel || seg.label)}
+        </div>
+        <div class="cv-tooltip-row">Length: <strong>${seg.fullLabel || seg.label||''}</strong></div>
+        <div class="cv-tooltip-row">Click for details</div>`);
+      drawCanvas(c, seg);
+    } else {
+      hideTooltip(); drawCanvas(c);
+    }
+  });
+  c.addEventListener('mouseleave', () => { hideTooltip(); drawCanvas(c); });
+  c.addEventListener('mousemove', positionTooltip);
+  c.addEventListener('click', e => {
+    const rect = c.getBoundingClientRect();
+    const hit  = getSegmentAt(c, e.clientX - rect.left);
+    if (!hit) return;
+    const {seg} = hit;
+    const total = parseFloat(c.dataset.total);
+    const pct   = ((seg.len/total)*100).toFixed(1);
+    const isWaste = !seg.label || seg.label.includes('waste');
+    openDetail(isWaste ? 'Waste segment' : (seg.fullLabel || seg.label), [
+      ['Type',       isWaste ? 'Waste / leftover' : 'Cut piece', seg.color],
+      ['Length',     seg.fullLabel || seg.label || '—',    null],
+      ['% of total', pct + '%',           null],
+      ['Bar',        barLabel,            null],
+    ]);
+  });
+}
+
+function drawAllCanvases(container) {
+  container.querySelectorAll('canvas[data-segments]').forEach(c => {
+    drawCanvas(c);
+    const label = c.closest('.bar-wrap')?.querySelector('.bar-label')?.textContent || '';
+    attachBarInteraction(c, label);
+  });
+  container.querySelectorAll('canvas[data-guiderows]').forEach(c => {
+    drawGuideCanvas(c);
+    attachGuideInteraction(c);
+  });
+}
+
+function drawGuideCanvas(canvas) {
+  const rows     = JSON.parse(canvas.dataset.guiderows);
+  const roll_w   = parseFloat(canvas.dataset.guiderollw);
+  const roll_len = parseFloat(canvas.dataset.guiderolllen);
+  const mu       = canvas.dataset.guidemu;
+  const colorMap = JSON.parse(canvas.dataset.guidecolors);
+  const dark     = document.body.dataset.theme === 'dark';
+  const dpr      = window.devicePixelRatio || 1;
+
+  // Scale canvas width to fit container, proportional to roll width
+  const containerW = Math.max(300, (canvas.parentElement?.offsetWidth || 700) - 2);
+  const PX_PER_CM  = Math.min(8, containerW / roll_w);
+  const RH         = 56; // fixed row height px — compact and readable
+  const canvasW    = Math.round(roll_w * PX_PER_CM);
+  const leftover   = roll_len - rows.reduce((a,r) => a + r.row_height, 0);
+  const leftH      = leftover > 0 ? 28 : 0;
+  const canvasH    = rows.length * RH + leftH;
+
+  canvas.width        = canvasW * dpr;
+  canvas.height       = canvasH * dpr;
+  canvas.style.width  = canvasW + 'px';
+  canvas.style.height = canvasH + 'px';
+  canvas.style.maxWidth = '100%';
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.fillStyle = dark ? '#1a2a1a' : '#eef6f1';
+  ctx.fillRect(0, 0, canvasW, canvasH);
+
+  let y = 0;
+  rows.forEach(row => {
+    let x = 0;
+    row.pieces.forEach(p => {
+      const pw = Math.round(p.width * PX_PER_CM);
+      ctx.fillStyle = colorMap[p.name] || '#5DBE8A';
+      ctx.fillRect(x, y, pw, RH);
+      // Subtle separator
+      ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(x + 0.25, y + 0.25, pw - 0.5, RH - 0.5);
+      // Label — name on line 1, dimensions on line 2
+      if (pw > 44) {
+        ctx.fillStyle = '#111';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText(p.name, x + pw/2, y + RH/2 - 7);
+        if (pw > 70) {
+          ctx.font = '8px monospace';
+          ctx.fillText(fv(p.width,mu) + '×' + fv(p.height,mu), x + pw/2, y + RH/2 + 7);
+        }
+      }
+      x += pw;
+    });
+    // Unused width
+    const usedPx  = Math.round(row.used_width * PX_PER_CM);
+    const unusedPx = canvasW - usedPx;
+    if (unusedPx > 1) {
+      ctx.fillStyle = dark ? '#152515' : '#d8ece3';
+      ctx.fillRect(usedPx, y, unusedPx, RH);
+      if (unusedPx > 36) {
+        ctx.fillStyle = dark ? '#4a8a4a' : '#2a7a4a';
+        ctx.font = '9px monospace';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(fv(roll_w - row.used_width, mu), usedPx + unusedPx/2, y + RH/2);
+      }
+    }
+    // Cut line
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = 1.5; ctx.setLineDash([5,4]);
+    ctx.beginPath(); ctx.moveTo(0, y+RH); ctx.lineTo(canvasW, y+RH); ctx.stroke();
+    ctx.setLineDash([]);
+    y += RH;
+  });
+
+  // Leftover strip
+  if (leftH > 0) {
+    ctx.fillStyle = dark ? '#111a11' : '#e8f2ec';
+    ctx.fillRect(0, y, canvasW, leftH);
+    ctx.fillStyle = dark ? '#3a6a3a' : '#2a7a4a';
+    ctx.font = '9px monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(fv(leftover, mu) + ' leftover', canvasW/2, y + leftH/2);
+  }
+}
+
+
+function attachGuideInteraction(canvas) {
+  const rows     = JSON.parse(canvas.dataset.guiderows);
+  const roll_w   = parseFloat(canvas.dataset.guiderollw);
+  const mu       = canvas.dataset.guidemu;
+  const colorMap = JSON.parse(canvas.dataset.guidecolors);
+  const SCALE_X  = 4.0, SCALE_Y = 2.0;
+
+  function hitTest(mx, my) {
+    // Must exactly match drawGuideCanvas coordinate math
+    const containerW = canvas.parentElement ? canvas.parentElement.offsetWidth - 2 : 700;
+    const PX_PER_CM  = Math.max(4, Math.min(8, containerW / roll_w));
+    const SCALE_Y    = 48;
+    let y = 0;
+    for (const row of rows) {
+      const rh = 64;
+      if (my >= y && my < y + rh) {
+        let x = 0;
+        for (const p of row.pieces) {
+          const pw = Math.round(p.width * PX_PER_CM);
+          if (mx >= x && mx < x + pw) return {type:'piece', piece:p, row, rh};
+          x += pw;
+        }
+        return {type:'unused', row, rh};
+      }
+      y += rh;
+    }
+    return null;
+  }
+
+  canvas.style.cursor = 'crosshair';
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const hit  = hitTest(e.clientX - rect.left, e.clientY - rect.top);
+    if (hit && hit.type === 'piece') {
+      const p = hit.piece;
+      showTooltip(e, `
+        <div class="cv-tooltip-title">
+          <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${colorMap[p.name]};margin-right:6px;vertical-align:middle"></span>
+          ${p.name}
+        </div>
+        <div class="cv-tooltip-row">Width: <strong>${fv(p.width,mu)}</strong></div>
+        <div class="cv-tooltip-row">Height: <strong>${fv(p.height,mu)}</strong></div>
+        <div class="cv-tooltip-row">Click for details</div>`);
+    } else if (hit && hit.type === 'unused') {
+      const unused = roll_w - hit.row.used_width;
+      showTooltip(e, `<div class="cv-tooltip-title">Unused width</div>
+        <div class="cv-tooltip-row">${fv(unused,mu)} available on this row</div>`);
+    } else {
+      hideTooltip();
+    }
+  });
+  canvas.addEventListener('mouseleave', hideTooltip);
+  canvas.addEventListener('mousemove', positionTooltip);
+  canvas.addEventListener('click', e => {
+    const rect = canvas.getBoundingClientRect();
+    const hit  = hitTest(e.clientX - rect.left, e.clientY - rect.top);
+    if (!hit || hit.type !== 'piece') return;
+    const p   = hit.piece;
+    const row = hit.row;
+    const cum = rows.slice(0, rows.indexOf(row)+1).reduce((a,r)=>a+r.row_height,0);
+    openDetail(p.name, [
+      ['Window',       p.name,              colorMap[p.name]],
+      ['Width',        fv(p.width,  mu),    null],
+      ['Height',       fv(p.height, mu),    null],
+      ['Cut at',       fv(cum, mu)+' ✂',    null],
+      ['Row pieces',   row.pieces.length+' screens', null],
+      ['Unused width', fv(roll_w-row.used_width, mu), null],
+    ]);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Results tab
+// ---------------------------------------------------------------------------
+function renderResults() {
+  const r   = results;
+  const su  = config.stick_unit;
+  const mu  = config.mesh_roll_width_unit;
+  const spu = config.spline_roll_length_unit;
+
+  const statGrid = `<div class="stat-grid">
+    ${stat('Total screens',   r.total_screens)}
+    ${stat('Frame pieces',    r.cuts.length)}
+    ${stat('Sticks needed',   r.sticks_needed, `each ${fv(r.stick_cm, su)}`)}
+    ${stat('Frame waste',     fv(r.frame_waste, su))}
+    ${stat('Corner keys',     r.corner_keys)}
+    ${stat('Mesh rolls',      r.mesh.rolls, `each ${fv(r.mesh.roll_len, mu)}`)}
+    ${stat('Spline rolls',    r.spline.rolls, `each ${fv(r.spline.roll_len, spu)}`)}
+    ${stat('Mesh leftover',   fv(r.mesh.leftover, mu))}
+    ${stat('Spline leftover', fv(r.spline.leftover, spu))}
+  </div>`;
+
+  const winTable = `<div class="card">
+    <div class="card-title">Screens by window type</div>
+    <table class="results-table">
+      <thead><tr>
+        <th>Type</th><th>Width</th><th>Height</th><th>Qty</th><th>Pieces</th>
+      </tr></thead>
+      <tbody>${Object.entries(config.windows).map(([name,d]) => {
+        const qty = d[mode];
+        return `<tr>
+          <td>${name}</td>
+          <td>${d.width.toFixed(UNIT_DEC[d.width_unit])} ${d.width_unit}</td>
+          <td>${d.height.toFixed(UNIT_DEC[d.height_unit])} ${d.height_unit}</td>
+          <td>${qty}</td><td>${qty*4}</td></tr>`;
+      }).join('')}</tbody>
+    </table></div>`;
+
+  const meshTable = `<div class="card">
+    <div class="card-title">Mesh — per window type</div>
+    <table class="results-table">
+      <thead><tr><th>Type</th><th>Width</th><th>Height</th><th>Qty</th><th>Area (cm²)</th><th>Roll needed</th></tr></thead>
+      <tbody>${r.mesh.cuts.map(c => `<tr>
+        <td>${c.name}</td>
+        <td>${fv(c.width,mu)}</td>
+        <td>${fv(c.height,mu)}</td>
+        <td>${c.qty}</td>
+        <td>${c.total_area.toFixed(2)}</td>
+        <td>${fv(c.total_roll,mu)}${!c.fits?' <span style="color:var(--warn)">⚠ wider than roll</span>':''}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+
+  const iu = config.spline_inset_unit;
+  const insetMid = fv(r.spline.inset_mid, iu);
+  const insetMin = fv(r.spline.inset_min, iu);
+  const insetMax = fv(r.spline.inset_max, iu);
+  const splineTable = `<div class="card">
+    <div class="card-title" style="display:flex;align-items:center;gap:10px">
+      Spline — per window type
+      <span class="range-badge">inset ${insetMid} mid · ${insetMin}–${insetMax} range</span>
+    </div>
+    <table class="results-table">
+      <thead><tr><th>Type</th><th>Outer perim</th><th>Eff. perim</th><th>Qty</th><th>Total (mid)</th><th>Range</th></tr></thead>
+      <tbody>${r.spline.rows.map(row => `<tr>
+        <td>${row.name}</td>
+        <td>${fv(row.outer,spu)}</td>
+        <td>${fv(row.perimeter,spu)}</td>
+        <td>${row.qty}</td>
+        <td>${fv(row.total,spu)}</td>
+        <td style="color:var(--text3)">${fv(row.total_max,spu)} – ${fv(row.total_min,spu)}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+    <div style="margin-top:12px;font-size:12px;font-family:var(--mono);color:var(--text2)">
+      Total (mid): <strong>${fv(r.spline.total,spu)}</strong> &nbsp;·&nbsp;
+      Range: ${fv(r.spline.total_max,spu)} – ${fv(r.spline.total_min,spu)}
+    </div>
+  </div>`;
+
+  document.getElementById('tab-results').innerHTML = statGrid + winTable + meshTable + splineTable;
+}
+
+function stat(label, value, sub='') {
+  return `<div class="stat">
+    <div class="stat-label">${label}</div>
+    <div class="stat-value">${value}</div>
+    ${sub ? `<div class="stat-sub">${sub}</div>` : ''}
+  </div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Frame Layout tab
+// ---------------------------------------------------------------------------
+function renderFrameLayout() {
+  const r = results;
+  const su = config.stick_unit;
+  const unique = [...new Set(r.cuts)].sort((a,b)=>b-a);
+  const colorMap = {};
+  unique.forEach((l,i) => colorMap[l] = CUT_COLORS[i%CUT_COLORS.length]);
+
+  let html = `<div class="card">
+    <div class="card-title">Stick-by-stick frame layout</div>
+    ${makeLegend(unique.map(l => [colorMap[l], fv(l,su)]))}`;
+
+  r.sticks.forEach((stick,i) => {
+    const used  = stick.reduce((a,b)=>a+b,0);
+    const waste = r.stick_cm - used;
+    const segs  = stick.map(c => ({len:c, color:colorMap[c], label:fv(c,su), fullLabel:fv(c,su)}));
+    segs.push({len:waste, color: document.body.dataset.theme==='dark'?'#2a2a3a':'#e0e2ea',
+               label: waste > 2 ? fv(waste,su)+' waste' : ''});
+
+    html += `<div class="bar-wrap frame-bar-placeholder" data-stick="${i}"></div>`;
+    if(!window._frameBars) window._frameBars=[];
+    const fb=document.createElement('div');fb.className='bar-wrap';
+    const fl=document.createElement('span');fl.className='bar-label';fl.textContent=`Stick ${i+1}`;
+    fb.appendChild(fl);
+    fb.appendChild(makeBarCanvas(segs,r.stick_cm,
+      document.body.dataset.theme==='dark'?'#1a1a2e':'#f0f1f6'));
+    const fs=document.createElement('span');fs.className='bar-side';
+    fs.textContent=fv(waste,su)+' waste';fb.appendChild(fs);
+    window._frameBars.push({el:fb,idx:i});
+  });
+  html += '</div>';
+
+  // Full cut list
+  const maxLen = r.cuts[0];
+  html += `<div class="card"><div class="card-title">Full cut list — longest to shortest</div>`;
+  r.cuts.forEach((len,i) => {
+    const segs = [
+      {len, color: colorMap[len], label:''},
+      {len: r.stick_cm-len, color: document.body.dataset.theme==='dark'?'#1e1e30':'#e8eaf2', label:''}
+    ];
+    const w = document.createElement('div');
+    w.className = 'bar-wrap';
+    w.innerHTML = `<span class="bar-label" style="min-width:24px;text-align:right">${i+1}.</span>
+                   <span class="bar-label">${fv(len,su)}</span>`;
+    html += `<div class="bar-wrap cut-bar-placeholder" data-cut="${i}"></div>`;
+    if(!window._cutBars) window._cutBars=[];
+    const cb=document.createElement('div');cb.className='bar-wrap';
+    const cl2=document.createElement('span');cl2.className='bar-label';
+    cl2.style.minWidth='24px';cl2.style.textAlign='right';cl2.textContent=`${i+1}.`;
+    const cl3=document.createElement('span');cl3.className='bar-label';
+    cl3.textContent=fv(len,su);
+    cb.appendChild(cl2);cb.appendChild(cl3);
+    cb.appendChild(makeBarCanvas(segs,r.stick_cm,
+      document.body.dataset.theme==='dark'?'#1a1a2e':'#f0f1f6',0,28));
+    window._cutBars.push({el:cb,idx:i});
+  });
+  html += '</div>';
+
+  const frameTab = document.getElementById('tab-frame');
+  frameTab.innerHTML = html;
+  if(window._frameBars) {
+    window._frameBars.forEach(({el,idx}) => {
+      const ph=frameTab.querySelector(`.frame-bar-placeholder[data-stick="${idx}"]`);
+      if(ph) ph.replaceWith(el);
+    });
+    window._frameBars=[];
+  }
+  if(window._cutBars) {
+    window._cutBars.forEach(({el,idx}) => {
+      const ph=frameTab.querySelector(`.cut-bar-placeholder[data-cut="${idx}"]`);
+      if(ph) ph.replaceWith(el);
+    });
+    window._cutBars=[];
+  }
+  requestAnimationFrame(() => requestAnimationFrame(() => drawAllCanvases(frameTab)));
+}
+
+// ---------------------------------------------------------------------------
+// Mesh Layout tab
+// ---------------------------------------------------------------------------
+function renderMeshLayout() {
+  const r   = results;
+  const mu  = config.mesh_roll_width_unit;
+  const ou  = config.mesh_overage_unit || 'in';
+  const ov  = fv(r.mesh.overage, mu);
+  const colorMap = {};
+  r.mesh.cuts.forEach((c,i) => colorMap[c.name] = MESH_COLORS[i%MESH_COLORS.length]);
+
+  // Optimized layout only
+  const optRolls2 = calcOptRolls(r.mesh_rows_opt, r.mesh.roll_len);
+  const optUsed2  = r.mesh_rows_opt.reduce((a,rw)=>a+rw.row_height,0);
+  const optLeft2  = optRolls2 * r.mesh.roll_len - optUsed2;
+  let html = `<div class="card" id="mesh-optimized-section">
+    <div class="card-title">Mesh layout
+      <span class="range-badge" style="margin-left:8px">${optRolls2} roll${optRolls2!==1?'s':''} needed</span>
+      <span class="range-badge" style="margin-left:6px">+${ov} overage per side</span>
+    </div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">
+      Roll ${fv(r.mesh.roll_w,mu)} wide × ${fv(r.mesh.roll_len,mu)} long &nbsp;·&nbsp;
+      ${fv(optLeft2,mu)} leftover &nbsp;·&nbsp; cut sizes include ${ov} overage
+    </div>
+    ${makeLegend(r.mesh.cuts.map(c=>[colorMap[c.name],`${c.name} — cut ${fv(c.width_cut,mu)}×${fv(c.height_cut,mu)}`]))}
+    <div class='mesh-rolls-opt-container'></div>`;
+  html += renderMeshCutGuide(r.mesh_rows_opt, r.mesh, mu, 'Cut guide — optimized layout');
+  html += '</div>';
+  const meshTab = document.getElementById('tab-mesh');
+  meshTab.innerHTML = html;
+
+  function injectRollBars(container, rollData, roll_len) {
+    rollData.forEach(([rp,used],i) => {
+      const leftover = roll_len - used;
+      const segs = rp.map(p=>({len:p.len,color:p.color,
+        label:p.name, fullLabel:p.name+' '+fv(p.w,mu)+'×'+fv(p.len,mu)}));
+      segs.push({len:leftover,color:document.body.dataset.theme==='dark'?'#1a2a1a':'#e0ece6',
+                 label:leftover>50?fv(leftover,mu)+' left':''});
+      const wrap = document.createElement('div'); wrap.className='bar-wrap';
+      const lbl  = document.createElement('span'); lbl.className='bar-label';
+      lbl.textContent=`Roll ${i+1}`; wrap.appendChild(lbl);
+      wrap.appendChild(makeBarCanvas(segs,roll_len,
+        document.body.dataset.theme==='dark'?'#1a2a1a':'#eef6f1',0,44));
+      const side = document.createElement('span'); side.className='bar-side';
+      side.textContent=fv(leftover,mu)+' left'; wrap.appendChild(side);
+      container.appendChild(wrap);
+    });
+  }
+
+  // Optimized roll bars
+  const optPieces = [];
+  r.mesh_rows_opt.forEach(row => {
+    row.pieces.forEach(p => optPieces.push({name:p.name,len:p.height,w:p.width,color:colorMap[p.name]}));
+  });
+  const optRollsData=[]; let oc=[],ou2=0;
+  optPieces.forEach(p=>{
+    if(ou2+p.len>r.mesh.roll_len){optRollsData.push([oc,ou2]);oc=[];ou2=0;}
+    oc.push(p);ou2+=p.len;
+  });
+  if(oc.length) optRollsData.push([oc,ou2]);
+  const optCont = meshTab.querySelector('.mesh-rolls-opt-container');
+  if(optCont) injectRollBars(optCont, optRollsData, r.mesh.roll_len);
+
+  injectGuides(meshTab);
+  requestAnimationFrame(() => requestAnimationFrame(() => drawAllCanvases(meshTab)));
+}
+
+function calcOptRolls(rows, roll_len) {
+  const used = rows.reduce((a,r)=>a+r.row_height,0);
+  return Math.ceil(used / roll_len);
+}
+
+function renderMeshCutGuide(rows, mesh, mu, title) {
+  // Returns an HTML string with a placeholder; call injectMeshCutGuide after innerHTML set
+  const roll_w   = mesh.roll_w;
+  const roll_len = mesh.roll_len;
+  const totalUsed = rows.reduce((a,r)=>a+r.row_height, 0);
+  const leftover  = roll_len - totalUsed;
+  const colorMap  = {};
+  mesh.cuts.forEach((c,i) => colorMap[c.name] = MESH_COLORS[i%MESH_COLORS.length]);
+
+  let cum = 0;
+  const sumLines = rows.map((row,i) => {
+    cum += row.row_height;
+    const names  = [...new Set(row.pieces.map(p=>p.name))].join(', ');
+    const unused = fv(roll_w - row.used_width, mu);
+    return `<div>Cut ${i+1}: <strong>${fv(cum,mu)}</strong> — ${names} · ${unused} unused</div>`;
+  }).join('');
+
+  const uid = 'guide-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+  // Stash data for injection after DOM insertion
+  if (!window._guideQueue) window._guideQueue = {};
+  window._guideQueue[uid] = {rows, mesh, mu, colorMap};
+
+  return `<div class="card">
+    <div class="card-title">${title || 'Cut guide — top-down roll view'}</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">
+      Roll ${fv(roll_w,mu)} wide × ${fv(roll_len,mu)} long &nbsp;·&nbsp;
+      Used ${fv(totalUsed,mu)} &nbsp;·&nbsp; ${fv(leftover,mu)} leftover
+    </div>
+    ${makeLegend(mesh.cuts.map(c=>[colorMap[c.name],`${c.name} (${fv(c.width_cut||c.width,mu)}×${fv(c.height_cut||c.height,mu)})`]))}
+    <div class="guide-wrap-placeholder" data-uid="${uid}"></div>
+    <div class="summary-box" style="margin-top:16px">
+      <strong>Cut line summary</strong><br>${sumLines}
+      <div style="color:var(--text3);margin-top:4px">${fv(leftover,mu)} remaining after all cuts</div>
+    </div>
+  </div>`;
+}
+
+function injectGuides(container) {
+  if (!window._guideQueue) return;
+  container.querySelectorAll('.guide-wrap-placeholder').forEach(ph => {
+    const uid  = ph.dataset.uid;
+    const data = window._guideQueue[uid];
+    if (!data) return;
+    const {rows, mesh, mu, colorMap} = data;
+    const roll_w   = mesh.roll_w;
+    const roll_len = mesh.roll_len;
+    const SCALE_Y  = 2.0;
+
+    const guideWrap = document.createElement('div');
+    guideWrap.className = 'guide-wrap';
+
+    // Canvas
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText = 'border-radius:6px;border:1px solid var(--border);flex:1;min-width:0;display:block';
+    canvas.dataset.guiderows    = JSON.stringify(rows.map(r=>({...r,pieces:r.pieces.map(p=>({name:p.name,width:p.width,height:p.height,idx:p.idx||0}))})));
+    canvas.dataset.guiderollw   = roll_w;
+    canvas.dataset.guiderolllen = roll_len;
+    canvas.dataset.guidemu      = mu;
+    canvas.dataset.guidecolors  = JSON.stringify(colorMap);
+    // Set canvas size now so it has dimensions
+    const _ROW_H_PX = 56;
+    const totalH = rows.length * _ROW_H_PX;
+    const leftover = roll_len - rows.reduce((a,r)=>a+r.row_height,0);
+    const leftH = Math.min(Math.round(leftover*SCALE_Y),44);
+    canvas.width  = 400; // placeholder, redrawn by drawGuideCanvas
+    canvas.height = totalH + leftH;
+
+    // Labels
+    const labelsDiv = document.createElement('div');
+    labelsDiv.className = 'guide-labels';
+    let cum = 0;
+    rows.forEach(row => {
+      const rh = 56;
+      cum += row.row_height;
+      const names = [...new Set(row.pieces.map(p=>p.name))].join(' + ');
+      const d = document.createElement('div');
+      d.className = 'guide-label-row';
+      d.style.height = rh + 'px';
+      d.innerHTML = `<span>${names}</span><span>cut @ ${fv(cum,mu)} ✂</span>`;
+      labelsDiv.appendChild(d);
+    });
+
+    guideWrap.appendChild(canvas);
+    guideWrap.appendChild(labelsDiv);
+    ph.replaceWith(guideWrap);
+    delete window._guideQueue[uid];
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Spline Layout tab
+// ---------------------------------------------------------------------------
+function renderSplineLayout() {
+  const r   = results;
+  const spu = config.spline_roll_length_unit;
+  const sp  = r.spline;
+  const colorMap = {};
+  sp.rows.forEach((row,i) => colorMap[row.name] = SPLINE_COLORS[i%SPLINE_COLORS.length]);
+
+  let html = `<div class="card">
+    <div class="card-title">Spline roll layout</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">
+      Roll ${fv(sp.roll_len,spu)} long &nbsp;·&nbsp;
+      Groove inset ${fv(sp.inset_mid, config.spline_inset_unit)} mid (${fv(sp.inset_min, config.spline_inset_unit)}–${fv(sp.inset_max, config.spline_inset_unit)} range)
+    </div>
+    ${makeLegend(sp.rows.map(r=>[colorMap[r.name],r.name]))}
+    <div class='spline-rolls-container'></div>`;
+
+  // pack spline pieces into rolls
+  const pieces = [];
+  sp.rows.forEach(row => {
+    for(let i=0;i<row.qty;i++)
+      pieces.push({name:row.name,len:row.perimeter,color:colorMap[row.name]});
+  });
+  const rolls=[]; let cur=[],cu=0;
+  pieces.forEach(p=>{
+    if(cu+p.len>sp.roll_len){rolls.push([cur,cu]);cur=[];cu=0;}
+    cur.push(p);cu+=p.len;
+  });
+  if(cur.length) rolls.push([cur,cu]);
+
+  // Summary
+  const perWin = sp.rows.map(row =>
+    `<div>${row.name}: ${row.qty}× perimeter ${fv(row.perimeter,spu)} = <strong>${fv(row.total,spu)}</strong>
+       <span class="range-badge">${fv(row.total_max,spu)}–${fv(row.total_min,spu)}</span></div>`
+  ).join('');
+
+  html += `<div class="card">
+    <div class="card-title">Spline summary</div>
+    <div class="summary-box">
+      ${perWin}
+      <hr style="border-color:var(--border);margin:10px 0">
+      <div>Total needed (mid): <strong>${fv(sp.total,spu)}</strong></div>
+      <div>Total range: ${fv(sp.total_max,spu)} – ${fv(sp.total_min,spu)}</div>
+      <div>Rolls to buy: <strong>${sp.rolls}</strong></div>
+      <div>Leftover: ${fv(sp.leftover,spu)}</div>
+    </div>
+  </div>`;
+
+  const splineTab = document.getElementById('tab-spline');
+  splineTab.innerHTML = html;
+  // Inject spline roll bars directly
+  const splineCont = splineTab.querySelector('.spline-rolls-container');
+  if(splineCont) {
+    rolls.forEach(([rp,used],ri) => {
+      const lo=sp.roll_len-used;
+      const segs=rp.map(p=>({len:p.len,color:p.color,label:p.name,fullLabel:p.name+' '+fv(p.len,spu)}));
+      segs.push({len:lo,color:document.body.dataset.theme==='dark'?'#1e1a2e':'#ede8f6',
+                 label:lo>50?fv(lo,spu)+' left':''});
+      const wrap=document.createElement('div');wrap.className='bar-wrap';
+      const lbl=document.createElement('span');lbl.className='bar-label';
+      lbl.textContent=`Roll ${ri+1}`;wrap.appendChild(lbl);
+      wrap.appendChild(makeBarCanvas(segs,sp.roll_len,
+        document.body.dataset.theme==='dark'?'#1e1a2e':'#f2eef8',0,38));
+      const sd=document.createElement('span');sd.className='bar-side';
+      sd.textContent=fv(lo,spu)+' left';wrap.appendChild(sd);
+      splineCont.appendChild(wrap);
+    });
+  }
+  requestAnimationFrame(() => requestAnimationFrame(() => drawAllCanvases(splineTab)));
+}
+
+// ---------------------------------------------------------------------------
+// Tab switching
+// ---------------------------------------------------------------------------
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((b,i) =>
+    b.classList.toggle('active', ['results','frame','mesh','spline'][i]===name));
+  document.querySelectorAll('.tab-panel').forEach(p =>
+    p.classList.toggle('active', p.id===`tab-${name}`));
+  // Redraw canvases after tab is visible so offsetWidth is correct
+  const panel = document.getElementById(`tab-${name}`);
+  if (panel) { injectGuides(panel); requestAnimationFrame(() => requestAnimationFrame(() => drawAllCanvases(panel))); }
+}
+
+
+// ---------------------------------------------------------------------------
+// Sidebar resize + collapse
+// ---------------------------------------------------------------------------
+(function initSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const handle  = document.getElementById('sidebar-resize');
+  if (!sidebar || !handle) return;
+  let dragging = false, startX = 0, startW = 0;
+  handle.addEventListener('mousedown', e => {
+    dragging = true; startX = e.clientX;
+    startW = sidebar.offsetWidth;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const w = Math.max(180, Math.min(520, startW + e.clientX - startX));
+    sidebar.style.width = w + 'px';
+    document.documentElement.style.setProperty('--sidebar-w', w + 'px');
+  });
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+})();
+
+function toggleSection(bodyId, chevId) {
+  const body = document.getElementById(bodyId);
+  const chev = document.getElementById(chevId);
+  if (!body) return;
+  const isOpen = !body.classList.contains('collapsed');
+  body.classList.toggle('collapsed', isOpen);
+  if (chev) chev.classList.toggle('open', !isOpen);
+}
+
+
+
+// ---------------------------------------------------------------------------
+// Boot
+// ---------------------------------------------------------------------------
+(function boot() {
+  const saved = localStorage.getItem('theme');
+  if(saved) document.body.dataset.theme = saved;
+  // Set correct icon after DOM ready
+  window.addEventListener('DOMContentLoaded', () => {
+    const icon = document.getElementById('theme-icon');
+    if (icon) icon.textContent = document.body.dataset.theme === 'light' ? '☀️' : '🌙';
+  });
+  init();
+})();
+</script>
+
+<div class="cv-tooltip" id="cv-tooltip"></div>
+<div class="detail-overlay" id="detail-overlay" onclick="closeDetail()"></div>
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-header">
+    <span class="detail-title" id="detail-title">Segment details</span>
+    <button class="detail-close" onclick="closeDetail()">✕ Close</button>
+  </div>
+  <div class="detail-body-inner" id="detail-body"></div>
+</div>
+</body>
+</html>
