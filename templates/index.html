@@ -1576,10 +1576,17 @@ function renderSplineLayout() {
 // Tab switching
 // ---------------------------------------------------------------------------
 function switchTab(name) {
+  // Update desktop tab buttons
   document.querySelectorAll('.tab').forEach((b,i) =>
     b.classList.toggle('active', ['results','frame','mesh','spline'][i]===name));
+  // Show correct tab panel
   document.querySelectorAll('.tab-panel').forEach(p =>
     p.classList.toggle('active', p.id===`tab-${name}`));
+  // Update mobile bottom nav highlight
+  ['results','frame','mesh','spline'].forEach(n => {
+    const btn = document.getElementById(`bnav-${n}`);
+    if (btn) btn.classList.toggle('active', n === name);
+  });
   // Redraw canvases after tab is visible so offsetWidth is correct
   const panel = document.getElementById(`tab-${name}`);
   if (panel) { injectGuides(panel); requestAnimationFrame(() => requestAnimationFrame(() => drawAllCanvases(panel))); }
@@ -1672,15 +1679,8 @@ function mobileTab(name) {
   // Close settings sheet when switching to any content tab
   sheet.classList.remove('open');
 
-  // Switch tab panels
+  // switchTab handles panel switching, desktop tabs, AND bottom nav highlight
   switchTab(name);
-
-  // Redraw canvases since panel just became visible
-  const panel = document.getElementById(`tab-${name}`);
-  if (panel) requestAnimationFrame(() => requestAnimationFrame(() => {
-    injectGuides(panel);
-    drawAllCanvases(panel);
-  }));
 }
 
 function mirrorSettingsToMobile() {
@@ -1721,17 +1721,7 @@ function mirrorSettingsToMobile() {
   });
 }
 
-// Redirect desktop tab clicks to mobile on small screens
-const _origSwitchTab = switchTab;
-function switchTab(name) {
-  _origSwitchTab(name);
-  if (isMobile()) {
-    ['results','frame','mesh','spline'].forEach(n => {
-      const btn = document.getElementById(`bnav-${n}`);
-      if (btn) btn.classList.toggle('active', n === name);
-    });
-  }
-}
+
 
 // ---------------------------------------------------------------------------
 // Boot
