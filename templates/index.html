@@ -208,6 +208,29 @@ button:hover,.btn:hover{background:var(--bg3);border-color:var(--accent)}
   .mobile-settings-sheet.open {
     transform: translateY(0);
   }
+  .mobile-settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--bg2);
+    z-index: 1;
+    margin: -16px -16px 16px;
+  }
+  .mobile-settings-close {
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 16px;
+    cursor: pointer;
+    font-family: var(--sans);
+  }
 }
 
 /* Bottom navigation bar — mobile only */
@@ -488,7 +511,10 @@ select.unit-sel{width:auto;min-width:52px;max-width:64px;padding-right:18px}
 
   <!-- Mobile settings sheet (slides up from bottom nav) -->
   <div class="mobile-settings-sheet" id="mobile-settings-sheet">
-    <!-- Settings content is mirrored here for mobile -->
+    <div class="mobile-settings-header">
+      <span style="font-size:13px;font-weight:700;letter-spacing:.04em">SETTINGS</span>
+      <button class="mobile-settings-close" onclick="closeMobileSettings()">✕ Done</button>
+    </div>
     <div id="mobile-settings-content"></div>
   </div>
 
@@ -1609,6 +1635,21 @@ function isMobile() {
   return window.innerWidth <= 768;
 }
 
+function closeMobileSettings() {
+  const sheet = document.getElementById('mobile-settings-sheet');
+  if (sheet) sheet.classList.remove('open');
+  // Keep settings nav item highlighted only if it was active
+  const settingsBtn = document.getElementById('bnav-settings');
+  if (settingsBtn) settingsBtn.classList.remove('active');
+  // Re-activate whichever content tab is currently showing
+  const activePanel = document.querySelector('.tab-panel.active');
+  if (activePanel) {
+    const name = activePanel.id.replace('tab-','');
+    const btn = document.getElementById(`bnav-${name}`);
+    if (btn) btn.classList.add('active');
+  }
+}
+
 function mobileTab(name) {
   if (!isMobile()) return;
 
@@ -1623,13 +1664,12 @@ function mobileTab(name) {
   // Handle settings sheet
   const sheet = document.getElementById('mobile-settings-sheet');
   if (isSettings) {
-    // Mirror sidebar content into the sheet
     mirrorSettingsToMobile();
     sheet.classList.add('open');
     return;
   }
 
-  // Close settings sheet if open
+  // Close settings sheet when switching to any content tab
   sheet.classList.remove('open');
 
   // Switch tab panels
