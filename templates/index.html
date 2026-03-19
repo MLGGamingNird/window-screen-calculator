@@ -808,6 +808,12 @@ async function calculate() {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+function pct(part, total) {
+  // Returns percentage of part relative to total e.g. "92%"
+  if (!total || total <= 0) return '—';
+  return Math.round((part / total) * 100) + '%';
+}
+
 function fv(cmVal, unit) {
   const v = cmVal / TO_CM[unit];
   return v.toFixed(UNIT_DEC[unit]) + ' ' + unit;
