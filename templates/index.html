@@ -355,9 +355,37 @@ const SPLINE_COLORS= ["#B07CC6","#C6A07C","#7CB0C6","#C67C9A","#9AC67C","#C6C67C
 // ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
+const LS_KEY = 'screenCalcConfig';
+
 async function init() {
-  const res = await fetch('/api/config');
-  config = await res.json();
+  // Try localStorage first — works offline and survives server restarts
+  const saved = localStorage.getItem(LS_KEY);
+  if (saved) {
+    try {
+      config = JSON.parse(saved);
+      populateSidebar();
+      return;
+    } catch(e) {
+      // Corrupted data — fall through to server
+      localStorage.removeItem(LS_KEY);
+    }
+  }
+  // No local config — fetch defaults from server
+  try {
+    const res = await fetch('/api/config');
+    config = await res.json();
+  } catch(e) {
+    // Server unreachable — use empty defaults
+    config = {
+      stick_length:0, stick_unit:'in',
+      mesh_roll_width:0, mesh_roll_width_unit:'in',
+      mesh_roll_length:0, mesh_roll_length_unit:'in',
+      mesh_overage:0, mesh_overage_unit:'in',
+      spline_roll_length:0, spline_roll_length_unit:'in',
+      spline_inset_min:0, spline_inset_max:0, spline_inset_unit:'in',
+      windows:{}
+    };
+  }
   populateSidebar();
 }
 
@@ -528,13 +556,44 @@ function toggleTheme() {
 // ---------------------------------------------------------------------------
 async function saveConfig() {
   config = buildConfigFromUI();
-  await fetch('/api/config', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(config)});
+  // Always save to localStorage — works offline, survives server restarts
+  localStorage.setItem(LS_KEY, JSON.stringify(config));
+  // Also try to save to server (best-effort — don't block if it fails)
+  try {
+    await fetch('/api/config', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(config)});
+  } catch(e) { /* Server save failed — localStorage copy is fine */ }
+  showSaveBadge();
+}
+
+function showSaveBadge() {
+  // Brief "Saved!" confirmation so the user knows it worked
+  const btn = document.querySelector('button[onclick="saveConfig()"]');
+  if (!btn) return;
+  const orig = btn.textContent;
+  btn.textContent = 'Saved ✓';
+  btn.style.color = 'var(--success)';
+  setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1500);
 }
 
 async function resetConfig() {
   if (!confirm('Reset all settings to defaults?')) return;
-  const res = await fetch('/api/config/reset', {method:'POST'});
-  config = await res.json();
+  // Clear localStorage
+  localStorage.removeItem(LS_KEY);
+  // Get defaults from server
+  try {
+    const res = await fetch('/api/config/reset', {method:'POST'});
+    config = await res.json();
+  } catch(e) {
+    config = {
+      stick_length:0, stick_unit:'in',
+      mesh_roll_width:0, mesh_roll_width_unit:'in',
+      mesh_roll_length:0, mesh_roll_length_unit:'in',
+      mesh_overage:0, mesh_overage_unit:'in',
+      spline_roll_length:0, spline_roll_length_unit:'in',
+      spline_inset_min:0, spline_inset_max:0, spline_inset_unit:'in',
+      windows:{}
+    };
+  }
   populateSidebar();
   clearResults();
 }
@@ -551,6 +610,8 @@ function clearResults() {
 // ---------------------------------------------------------------------------
 async function calculate() {
   config = buildConfigFromUI();
+  // Auto-save to localStorage on every calculate so settings are never lost
+  localStorage.setItem(LS_KEY, JSON.stringify(config));
   const res = await fetch('/api/calculate', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({config, mode})
